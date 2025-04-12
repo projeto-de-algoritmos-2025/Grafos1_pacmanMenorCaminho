@@ -1,5 +1,6 @@
 import pygame
 import random
+from collections import deque
 from .config import TILE_SIZE, YELLOW, WHITE, BLUE, RED, PINK, CYAN, ORANGE, WIDTH, HEIGHT
 
 class PacMan(pygame.sprite.Sprite):
@@ -33,19 +34,29 @@ class PacMan(pygame.sprite.Sprite):
         if self.direction != self.next_direction and self.can_move(self.next_direction):
             self.direction = self.next_direction
         if self.can_move(self.direction):
-            if self.direction == "right": self.rect.x += self.speed
-            elif self.direction == "left": self.rect.x -= self.speed
-            elif self.direction == "up": self.rect.y -= self.speed
-            elif self.direction == "down": self.rect.y += self.speed
-        if self.rect.right < 0: self.rect.left = WIDTH
-        elif self.rect.left > WIDTH: self.rect.right = 0
+            if self.direction == "right":
+                self.rect.x += self.speed
+            elif self.direction == "left":
+                self.rect.x -= self.speed
+            elif self.direction == "up":
+                self.rect.y -= self.speed
+            elif self.direction == "down":
+                self.rect.y += self.speed
+        if self.rect.right < 0:
+            self.rect.left = WIDTH
+        elif self.rect.left > WIDTH:
+            self.rect.right = 0
 
     def can_move(self, direction):
         test_rect = self.rect.copy()
-        if direction == "right": test_rect.x += self.speed
-        elif direction == "left": test_rect.x -= self.speed
-        elif direction == "up": test_rect.y -= self.speed
-        elif direction == "down": test_rect.y += self.speed
+        if direction == "right":
+            test_rect.x += self.speed
+        elif direction == "left":
+            test_rect.x -= self.speed
+        elif direction == "up":
+            test_rect.y -= self.speed
+        elif direction == "down":
+            test_rect.y += self.speed
         return not any(test_rect.colliderect(wall.rect) for wall in self.game.walls)
 
     def collide_with_dots(self):
@@ -93,41 +104,100 @@ class Ghost(pygame.sprite.Sprite):
         self.move()
         self.check_collision_with_pacman()
 
-    def move(self):
-        if self.behavior == "chase":
-            self.target = (self.game.player.rect.x, self.game.player.rect.y)
-        elif self.behavior == "scatter":
-            targets = {RED: (WIDTH, 0), PINK: (0, 0), CYAN: (WIDTH, HEIGHT), ORANGE: (0, HEIGHT)}
-            self.target = targets.get(self.color)
+    def bfs(self, start, goal):
+        queue = deque()
+        queue.append(start)
+        visited = {start}
+        came_from = {}
+        while queue:
+            current = queue.popleft()
+            if current == goal:
+                break
+            neighbors = self.get_neighbors(current)
+            for neighbor in neighbors:
+                if neighbor not in visited:
+                    queue.append(neighbor)
+                    visited.add(neighbor)
+                    came_from[neighbor] = current
+        path = []
+        current = goal
+        while current != start:
+            if current in came_from:
+                path.append(current)
+                current = came_from[current]
+            else:
+                return []
+        path.reverse()
+        return path
 
+    def get_neighbors(self, pos):
+        x, y = pos
+        neighbors = []
+        directions = [(0, -TILE_SIZE), (0, TILE_SIZE), (-TILE_SIZE, 0), (TILE_SIZE, 0)]
+        for dx, dy in directions:
+            neighbor_rect = pygame.Rect(x + dx, y + dy, TILE_SIZE, TILE_SIZE)
+            if not any(neighbor_rect.colliderect(w.rect) for w in self.game.walls):
+                neighbors.append((x + dx, y + dy))
+        return neighbors
+
+    def move(self):
+        if self.color == RED:
+            start = (self.rect.x // TILE_SIZE * TILE_SIZE, self.rect.y // TILE_SIZE * TILE_SIZE)
+            goal = (self.game.player.rect.x // TILE_SIZE * TILE_SIZE, self.game.player.rect.y // TILE_SIZE * TILE_SIZE)
+            path = self.bfs(start, goal)
+            if path:
+                next_pos = path[0]
+                dx = next_pos[0] - self.rect.x
+                dy = next_pos[1] - self.rect.y
+                if dx > 0:
+                    self.rect.x += self.speed
+                elif dx < 0:
+                    self.rect.x -= self.speed
+                elif dy > 0:
+                    self.rect.y += self.speed
+                elif dy < 0:
+                    self.rect.y -= self.speed
+            return
         if random.random() < 0.1 or not self.can_move(self.direction):
             options = [d for d in ["up", "down", "left", "right"] if d != self.get_opposite_direction() and self.can_move(d)]
             if self.target and options:
                 self.direction = min(options, key=lambda d: self.distance_to_target(d))
-
         if self.can_move(self.direction):
-            if self.direction == "right": self.rect.x += self.speed
-            elif self.direction == "left": self.rect.x -= self.speed
-            elif self.direction == "up": self.rect.y -= self.speed
-            elif self.direction == "down": self.rect.y += self.speed
-
-        if self.rect.right < 0: self.rect.left = WIDTH
-        elif self.rect.left > WIDTH: self.rect.right = 0
+            if self.direction == "right":
+                self.rect.x += self.speed
+            elif self.direction == "left":
+                self.rect.x -= self.speed
+            elif self.direction == "up":
+                self.rect.y -= self.speed
+            elif self.direction == "down":
+                self.rect.y += self.speed
+        if self.rect.right < 0:
+            self.rect.left = WIDTH
+        elif self.rect.left > WIDTH:
+            self.rect.right = 0
 
     def can_move(self, direction):
         test_rect = self.rect.copy()
-        if direction == "right": test_rect.x += self.speed
-        elif direction == "left": test_rect.x -= self.speed
-        elif direction == "up": test_rect.y -= self.speed
-        elif direction == "down": test_rect.y += self.speed
+        if direction == "right":
+            test_rect.x += self.speed
+        elif direction == "left":
+            test_rect.x -= self.speed
+        elif direction == "up":
+            test_rect.y -= self.speed
+        elif direction == "down":
+            test_rect.y += self.speed
         return not any(test_rect.colliderect(wall.rect) for wall in self.game.walls)
 
     def distance_to_target(self, direction):
         test_rect = self.rect.copy()
-        if direction == "up": test_rect.y -= self.speed
-        elif direction == "down": test_rect.y += self.speed
-        elif direction == "left": test_rect.x -= self.speed
-        elif direction == "right": test_rect.x += self.speed
+        if direction == "up":
+            test_rect.y -= self.speed
+        elif direction == "down":
+            test_rect.y += self.speed
+        elif direction == "left":
+            test_rect.x -= self.speed
+        elif direction == "right":
+            test_rect.x += self.speed
         return ((test_rect.x - self.target[0]) ** 2 + (test_rect.y - self.target[1]) ** 2) ** 0.5
 
     def get_opposite_direction(self):
