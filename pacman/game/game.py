@@ -72,7 +72,38 @@ class Game:
     def game_over(self):
         self.playing = False
         self.high_score = max(self.score, self.high_score)
+        self.show_game_over()
         self.show_start_screen()
+        
+    def show_game_over(self):
+        game_over_text = self.title_font.render("GAME OVER", True, RED)
+        score_text = self.menu_font.render(f"Score: {self.score}", True, WHITE)
+        high_score_text = self.menu_font.render(f"High Score: {self.high_score}", True, WHITE)
+        restart_text = self.menu_font.render("Press SPACE to Restart", True, WHITE)
+        game_over_rect = game_over_text.get_rect(center=(WIDTH//2, HEIGHT//3))
+        score_rect = score_text.get_rect(center=(WIDTH//2, HEIGHT//2))
+        high_score_rect = high_score_text.get_rect(center=(WIDTH//2, HEIGHT//2 + 50))
+        restart_rect = restart_text.get_rect(center=(WIDTH//2, HEIGHT//2 + 120))
+        self.screen.fill(BLACK)
+        self.screen.blit(game_over_text, game_over_rect)
+        self.screen.blit(score_text, score_rect)
+        self.screen.blit(high_score_text, high_score_rect)
+        self.screen.blit(restart_text, restart_rect)
+        pygame.display.flip()
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    waiting = False
+                    self.running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        waiting = False
+                        self.new_game()
+                    elif event.key == pygame.K_q:
+                        waiting = False
+                        self.running = False
+
 
     def events(self):
         for event in pygame.event.get():

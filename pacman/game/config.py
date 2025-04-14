@@ -14,9 +14,9 @@ ORANGE = (255, 165, 0)
 
 tilemap = [
     "BBBBBBBBBBBBBBBBBBBB",
-    "B........BB........B",
+    "B........BB.......BB",
     "B.BBBB.BB.BB.BBBB.BB",
-    "B.B....B...B....B..B",
+    "B.B....B...B....B.BB",
     "B.B.BBBBB BBBBB.B.BB",
     "B...B.........B...GB",
     "BBB.B.BBBBBBB.B.BBBB",
@@ -26,11 +26,11 @@ tilemap = [
     "B.BBBBB     BBBBB.BB",
     "B.....B     B.....BB",
     "BBB.B.BBB.BBB.B.BBBB",
-    "B...B.........B....B",
+    "B...B.........B...BB",
     "B.B.BBBBB BBBBB.B.BB",
-    "B.B....B...B....B..B",
+    "B.B....B...B....B.BB",
     "B.BBBB.BB.BB.BBBB.BB",
-    "B........BB........B",
+    "B........BB.......BB",
     "BBBBBBBBBBBBBBBBBBBB"
 ]
 

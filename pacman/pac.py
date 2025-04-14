@@ -18,9 +18,9 @@ ORANGE = (255, 165, 0)
 
 tilemap = [
     "BBBBBBBBBBBBBBBBBBBB",
-    "B........BB........B",
+    "B........BB.......BB",
     "B.BBBB.BB.BB.BBBB.BB",
-    "B.B....B...B....B..B",
+    "B.B....B...B....B.BB",
     "B.B.BBBBB BBBBB.B.BB",
     "B...B.........B...GB",
     "BBB.B.BBBBBBB.B.BBBB",
@@ -30,11 +30,11 @@ tilemap = [
     "B.BBBBB     BBBBB.BB",
     "B.....B     B.....BB",
     "BBB.B.BBB.BBB.B.BBBB",
-    "B...B.........B....B",
+    "B...B.........B...BB",
     "B.B.BBBBB BBBBB.B.BB",
-    "B.B....B...B....B..B",
+    "B.B....B...B....B.BB",
     "B.BBBB.BB.BB.BBBB.BB",
-    "B........BB........B",
+    "B........BB.......BB",
     "BBBBBBBBBBBBBBBBBBBB"
 ]
 
@@ -44,7 +44,7 @@ class PacMan(pygame.sprite.Sprite):
         self.game = game
         self._layer = 4
         self.groups = self.game.all_sprites
-        pygame.sprite.Sprite.__init__(self, self.groups)
+        super().__init__(self.groups)
         self.x = x * TILE_SIZE
         self.y = y * TILE_SIZE
         self.width = TILE_SIZE
@@ -54,9 +54,7 @@ class PacMan(pygame.sprite.Sprite):
         self.speed = 2
         self.image = pygame.Surface((self.width, self.height))
         self.image.fill(YELLOW)
-        self.rect = self.image.get_rect()
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.rect = self.image.get_rect(topleft=(self.x, self.y))
         self.animation_frames = 0
         self.mouth_angle = 45
 
@@ -69,17 +67,17 @@ class PacMan(pygame.sprite.Sprite):
             self.mouth_angle = 45 if self.mouth_angle == 0 else 0
 
     def move(self):
-        if self.direction != self.next_direction:
-            if self.can_move(self.next_direction):
-                self.direction = self.next_direction
-        if self.direction == "right" and self.can_move("right"):
-            self.rect.x += self.speed
-        elif self.direction == "left" and self.can_move("left"):
-            self.rect.x -= self.speed
-        elif self.direction == "up" and self.can_move("up"):
-            self.rect.y -= self.speed
-        elif self.direction == "down" and self.can_move("down"):
-            self.rect.y += self.speed
+        if self.direction != self.next_direction and self.can_move(self.next_direction):
+            self.direction = self.next_direction
+        if self.can_move(self.direction):
+            if self.direction == "right":
+                self.rect.x += self.speed
+            elif self.direction == "left":
+                self.rect.x -= self.speed
+            elif self.direction == "up":
+                self.rect.y -= self.speed
+            elif self.direction == "down":
+                self.rect.y += self.speed
         if self.rect.right < 0:
             self.rect.left = WIDTH
         elif self.rect.left > WIDTH:
@@ -95,14 +93,11 @@ class PacMan(pygame.sprite.Sprite):
             test_rect.y -= self.speed
         elif direction == "down":
             test_rect.y += self.speed
-        for wall in self.game.walls:
-            if test_rect.colliderect(wall.rect):
-                return False
-        return True
+        return not any(test_rect.colliderect(wall.rect) for wall in self.game.walls)
 
     def collide_with_dots(self):
         hits = pygame.sprite.spritecollide(self, self.game.dots, True)
-        for hit in hits:
+        for _ in hits:
             self.game.score += 10
             if len(self.game.dots) == 0:
                 self.game.level_complete()
@@ -127,7 +122,7 @@ class Ghost(pygame.sprite.Sprite):
         self.game = game
         self._layer = 3
         self.groups = self.game.all_sprites, self.game.ghosts
-        pygame.sprite.Sprite.__init__(self, self.groups)
+        super().__init__(self.groups)
         self.x = x * TILE_SIZE
         self.y = y * TILE_SIZE
         self.width = TILE_SIZE
@@ -139,60 +134,79 @@ class Ghost(pygame.sprite.Sprite):
         self.target = None
         self.image = pygame.Surface((self.width, self.height))
         self.image.fill(color)
-        self.rect = self.image.get_rect()
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.rect = self.image.get_rect(topleft=(self.x, self.y))
 
     def update(self):
         self.move()
         self.check_collision_with_pacman()
 
+    def bfs(self, start, goal):
+        queue = deque()
+        queue.append(start)
+        visited = {start}
+        came_from = {}
+        while queue:
+            current = queue.popleft()
+            if current == goal:
+                break
+            neighbors = self.get_neighbors(current)
+            for neighbor in neighbors:
+                if neighbor not in visited:
+                    queue.append(neighbor)
+                    visited.add(neighbor)
+                    came_from[neighbor] = current
+        path = []
+        current = goal
+        while current != start:
+            if current in came_from:
+                path.append(current)
+                current = came_from[current]
+            else:
+                return []
+        path.reverse()
+        return path
+
+    def get_neighbors(self, pos):
+        x, y = pos
+        neighbors = []
+        directions = [(0, -TILE_SIZE), (0, TILE_SIZE), (-TILE_SIZE, 0), (TILE_SIZE, 0)]
+        for dx, dy in directions:
+            neighbor_rect = pygame.Rect(x + dx, y + dy, TILE_SIZE, TILE_SIZE)
+            if not any(neighbor_rect.colliderect(w.rect) for w in self.game.walls):
+                neighbors.append((x + dx, y + dy))
+        return neighbors
+
     def move(self):
-        if self.behavior == "chase":
-            self.target = (self.game.player.rect.x, self.game.player.rect.y)
-        elif self.behavior == "scatter":
-            if self.color == RED:
-                self.target = (WIDTH, 0)
-            elif self.color == PINK:
-                self.target = (0, 0)
-            elif self.color == CYAN:
-                self.target = (WIDTH, HEIGHT)
-            elif self.color == ORANGE:
-                self.target = (0, HEIGHT)
+        if self.color == RED:
+            start = (self.rect.x // TILE_SIZE * TILE_SIZE, self.rect.y // TILE_SIZE * TILE_SIZE)
+            goal = (self.game.player.rect.x // TILE_SIZE * TILE_SIZE, self.game.player.rect.y // TILE_SIZE * TILE_SIZE)
+            path = self.bfs(start, goal)
+            if path:
+                next_pos = path[0]
+                dx = next_pos[0] - self.rect.x
+                dy = next_pos[1] - self.rect.y
+                if dx > 0:
+                    self.rect.x += self.speed
+                elif dx < 0:
+                    self.rect.x -= self.speed
+                elif dy > 0:
+                    self.rect.y += self.speed
+                elif dy < 0:
+                    self.rect.y -= self.speed
+            return
         if random.random() < 0.1 or not self.can_move(self.direction):
-            possible_directions = []
-            for direction in ["up", "down", "left", "right"]:
-                if direction != self.get_opposite_direction() and self.can_move(direction):
-                    possible_directions.append(direction)
-            if possible_directions:
-                if self.target:
-                    best_direction = None
-                    min_distance = float('inf')
-                    for direction in possible_directions:
-                        test_rect = self.rect.copy()
-                        if direction == "up":
-                            test_rect.y -= self.speed
-                        elif direction == "down":
-                            test_rect.y += self.speed
-                        elif direction == "left":
-                            test_rect.x -= self.speed
-                        elif direction == "right":
-                            test_rect.x += self.speed
-                        distance = ((test_rect.x - self.target[0])**2 + 
-                                    (test_rect.y - self.target[1])**2)**0.5
-                        if distance < min_distance:
-                            min_distance = distance
-                            best_direction = direction
-                    if best_direction:
-                        self.direction = best_direction
-        if self.direction == "right" and self.can_move("right"):
-            self.rect.x += self.speed
-        elif self.direction == "left" and self.can_move("left"):
-            self.rect.x -= self.speed
-        elif self.direction == "up" and self.can_move("up"):
-            self.rect.y -= self.speed
-        elif self.direction == "down" and self.can_move("down"):
-            self.rect.y += self.speed
+            options = [d for d in ["up", "down", "left", "right"] if d != self.get_opposite_direction() and self.can_move(d)]
+            if self.target and options:
+                self.direction = min(options, key=lambda d: self.distance_to_target(d))
+        if self.can_move(self.direction):
+            if self.direction == "right":
+                self.rect.x += self.speed
+            elif self.direction == "left":
+                self.rect.x -= self.speed
+            elif self.direction == "up":
+                self.rect.y -= self.speed
+            elif self.direction == "down":
+                self.rect.y += self.speed
         if self.rect.right < 0:
             self.rect.left = WIDTH
         elif self.rect.left > WIDTH:
@@ -208,21 +222,22 @@ class Ghost(pygame.sprite.Sprite):
             test_rect.y -= self.speed
         elif direction == "down":
             test_rect.y += self.speed
-        for wall in self.game.walls:
-            if test_rect.colliderect(wall.rect):
-                return False
-        return True
+        return not any(test_rect.colliderect(wall.rect) for wall in self.game.walls)
+
+    def distance_to_target(self, direction):
+        test_rect = self.rect.copy()
+        if direction == "up":
+            test_rect.y -= self.speed
+        elif direction == "down":
+            test_rect.y += self.speed
+        elif direction == "left":
+            test_rect.x -= self.speed
+        elif direction == "right":
+            test_rect.x += self.speed
+        return ((test_rect.x - self.target[0]) ** 2 + (test_rect.y - self.target[1]) ** 2) ** 0.5
 
     def get_opposite_direction(self):
-        if self.direction == "up":
-            return "down"
-        elif self.direction == "down":
-            return "up"
-        elif self.direction == "left":
-            return "right"
-        elif self.direction == "right":
-            return "left"
-        return None
+        return {"up": "down", "down": "up", "left": "right", "right": "left"}.get(self.direction)
 
     def check_collision_with_pacman(self):
         if pygame.sprite.collide_rect(self, self.game.player):
@@ -244,31 +259,21 @@ class Wall(pygame.sprite.Sprite):
         self.game = game
         self._layer = 2
         self.groups = self.game.all_sprites, self.game.walls
-        pygame.sprite.Sprite.__init__(self, self.groups)
-        self.x = x * TILE_SIZE
-        self.y = y * TILE_SIZE
-        self.width = TILE_SIZE
-        self.height = TILE_SIZE
-        self.image = pygame.Surface((self.width, self.height))
+        super().__init__(self.groups)
+        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
         self.image.fill(BLUE)
-        self.rect = self.image.get_rect()
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.rect = self.image.get_rect(topleft=(x * TILE_SIZE, y * TILE_SIZE))
 
 class Dot(pygame.sprite.Sprite):
     def __init__(self, game, x, y):
         self.game = game
         self._layer = 1
         self.groups = self.game.all_sprites, self.game.dots
-        pygame.sprite.Sprite.__init__(self, self.groups)
-        self.x = x * TILE_SIZE + TILE_SIZE // 2
-        self.y = y * TILE_SIZE + TILE_SIZE // 2
+        super().__init__(self.groups)
         self.radius = 3
         self.image = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
         pygame.draw.circle(self.image, WHITE, (TILE_SIZE // 2, TILE_SIZE // 2), self.radius)
-        self.rect = self.image.get_rect()
-        self.rect.x = x * TILE_SIZE
-        self.rect.y = y * TILE_SIZE
+        self.rect = self.image.get_rect(topleft=(x * TILE_SIZE, y * TILE_SIZE))
 
 class PowerPellet(Dot):
     def __init__(self, game, x, y):
@@ -404,15 +409,15 @@ class Game:
                 self.playing = False
                 self.running = False
             if event.type == pygame.KEYDOWN and self.playing:
-            	if self.playing and hasattr(self, "player"):
-            	    if event.key == pygame.K_RIGHT:
-            	        self.player.next_direction = "right"
-            	    elif event.key == pygame.K_LEFT:
-            	        self.player.next_direction = "left"
-            	    elif event.key == pygame.K_UP:
-            	        self.player.next_direction = "up"
-            	    elif event.key == pygame.K_DOWN:
-            	        self.player.next_direction = "down"
+                if self.playing and hasattr(self, "player"):
+                    if event.key == pygame.K_RIGHT:
+                        self.player.next_direction = "right"
+                    elif event.key == pygame.K_LEFT:
+                        self.player.next_direction = "left"
+                    elif event.key == pygame.K_UP:
+                        self.player.next_direction = "up"
+                    elif event.key == pygame.K_DOWN:
+                        self.player.next_direction = "down"
 
     def update(self):
         if self.playing:
