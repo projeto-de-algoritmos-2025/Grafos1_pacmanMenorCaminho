@@ -88,6 +88,7 @@ class Ghost(pygame.sprite.Sprite):
         self.groups = self.game.all_sprites, self.game.ghosts
         super().__init__(self.groups)
         self.x = x * TILE_SIZE
+
         self.y = y * TILE_SIZE
         self.width = TILE_SIZE
         self.height = TILE_SIZE
@@ -223,10 +224,16 @@ class Wall(pygame.sprite.Sprite):
         self.game = game
         self._layer = 2
         self.groups = self.game.all_sprites, self.game.walls
-        super().__init__(self.groups)
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
-        self.image.fill(BLUE)
-        self.rect = self.image.get_rect(topleft=(x * TILE_SIZE, y * TILE_SIZE))
+        pygame.sprite.Sprite.__init__(self, self.groups)
+        self.x = x * TILE_SIZE
+        self.y = y * TILE_SIZE
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
+        self.image = pygame.Surface((self.width, self.height))
+        self.image.fill(RED)  
+        self.rect = self.image.get_rect()
+        self.rect.x = self.x
+        self.rect.y = self.y
 
 class Dot(pygame.sprite.Sprite):
     def __init__(self, game, x, y):
