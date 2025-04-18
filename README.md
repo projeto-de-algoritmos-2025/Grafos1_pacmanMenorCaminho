@@ -32,12 +32,12 @@ Este projeto demonstra a aplicação de grafos e busca em largura (BFS) no jogo 
     ```
 3. Clone o repositório.  
     ```bash
-    git clone <https://github.com/projeto-de-algoritmos-2025/Grafos1_pacmanMenorCaminho.git>
+    git clone https://github.com/projeto-de-algoritmos-2025/Grafos1_pacmanMenorCaminho.git
     ```
 ## Uso 
 1. Navegue até o diretório do projeto:
     ```bash
-    cd <pacman>
+    cd pacman
     ``` 
 2. Execute o script principal para rodar o jogo. No terminal, execute o comando:
     ```bash
@@ -47,3 +47,12 @@ Este projeto demonstra a aplicação de grafos e busca em largura (BFS) no jogo 
 3. Os fantasmas perseguem o Pac-Man usando o algoritmo de BFS para calcular o caminho mais curto até ele.  
 4. O objetivo é coletar todos os pontos sem ser pego pelos fantasmas.  
 5. O jogo termina quando o Pac-Man é capturado pelos fantasmas.
+
+## Outros
+<div style="text-align: center;">
+  <a href="https://youtu.be/i--iMGoz7y4" target="_blank">
+    <img src="https://img.youtube.com/vi/i--iMGoz7y4/0.jpg" alt="Assista ao vídeo" />
+  </a>
+  <br />
+  [Vídeo explicativo](https://youtu.be/i--iMGoz7y4)
+</div>
