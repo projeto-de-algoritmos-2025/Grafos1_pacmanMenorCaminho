@@ -49,10 +49,5 @@ Este projeto demonstra a aplicação de grafos e busca em largura (BFS) no jogo 
 5. O jogo termina quando o Pac-Man é capturado pelos fantasmas.
 
 ## Outros
-<div style="text-align: center;">
-  <a href="https://youtu.be/i--iMGoz7y4" target="_blank">
-    <img src="https://img.youtube.com/vi/i--iMGoz7y4/0.jpg" alt="Assista ao vídeo" />
-  </a>
-  <br />
-  [Vídeo explicativo](https://youtu.be/i--iMGoz7y4)
-</div>
+![Vídeo explicativo](https://img.youtube.com/vi/i--iMGoz7y4/0.jpg)  
+[Vídeo explicativo](https://youtu.be/i--iMGoz7y4)
